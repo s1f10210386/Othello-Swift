@@ -6,6 +6,49 @@ enum CellState: Int {
     case white = 2
 }
 
+
+
+struct ContentView: View {
+    @State private var gameBoard = GameBoard()
+    @State private var currentTurn = CellState.black
+    @State private var showAlert = false // showAlertをContentViewの中で定義
+    @State private var alertMessage = ""
+
+    var body: some View {
+        VStack {
+            Text(currentTurn == .black ? "黒のターン" : "白のターン")
+                            .font(.headline)
+                            .padding()
+            ForEach(0..<8, id: \.self) { row in
+                HStack {
+                    ForEach(0..<8, id: \.self) { column in
+                        CellView(cellState: gameBoard.cells[row][column])
+                            .frame(width: 40.0, height: 40)
+                            .onTapGesture {
+                                // showAlertをonTapGesture内で使用
+                                if gameBoard.cells[row][column] != .green {
+                                    alertMessage = "ここには置けません。"
+                                    showAlert = true
+                                } else if currentTurn == .black && !gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
+                                    alertMessage = "黒のコマを置ける場所ではありません。"
+                                    showAlert = true
+                                } else if currentTurn == .black && gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
+                                    gameBoard.cells[row][column] = currentTurn
+                                    currentTurn = .white // 次は白の番
+                                }
+                            }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color.green)
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("警告"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+        }
+    }
+}
+
 struct GameBoard {
     var cells: [[CellState]] = Array(repeating: Array(repeating: .green, count: 8), count: 8)
     
@@ -16,36 +59,23 @@ struct GameBoard {
         cells[3][4] = .black
         cells[4][3] = .black
     }
-}
-
-
-struct ContentView: View {
-    @State private var gameBoard = GameBoard()
-    @State private var currentTurn = CellState.black
-    @State private var showAlert = false
     
-    var body: some View {
-        VStack {
-            ForEach(0..<8, id: \.self) { row in
-                HStack {
-                    ForEach(0..<8, id: \.self) { column in
-                        CellView(cellState: gameBoard.cells[row][column])
-                            .frame(width: 40.0, height: 40)
-                        
-                            .onTapGesture {
-                                if gameBoard.cells[row][column] == .green{
-                                    gameBoard.cells[row][column] = currentTurn
-                                    
-                                    
-                                    currentTurn = currentTurn == .black ? .white : .black
-                                }
-                            }
-                    }
-                }
+    func canPlacePiece(at row: Int, column: Int, for player: CellState) -> Bool {
+        // すでにコマが置かれている場所には置けない
+        if cells[row][column] != .green {
+            return false
+        }
+        
+        let directions = [(0,1),(1,0),(0,-1),(-1,0)]
+        for (dx,dy) in directions{
+            let newRow = row + dx
+            let newColumn = column + dy
+            
+            if newRow >= 0 && newRow < 8 && newColumn >= 0 && newColumn < 8 && cells[newRow][newColumn] == .white {
+                return true
             }
         }
-        .padding()
-        .background(Color.green)
+        return false
     }
 }
 
