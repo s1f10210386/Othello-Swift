@@ -13,12 +13,12 @@ struct ContentView: View {
     @State private var currentTurn = CellState.black
     @State private var showAlert = false // showAlertをContentViewの中で定義
     @State private var alertMessage = ""
-
+    
     var body: some View {
         VStack {
             Text(currentTurn == .black ? "黒のターン" : "白のターン")
-                            .font(.headline)
-                            .padding()
+                .font(.headline)
+                .padding()
             ForEach(0..<8, id: \.self) { row in
                 HStack {
                     ForEach(0..<8, id: \.self) { column in
@@ -29,12 +29,14 @@ struct ContentView: View {
                                 if gameBoard.cells[row][column] != .green {
                                     alertMessage = "ここには置けません。"
                                     showAlert = true
-                                } else if currentTurn == .black && !gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
-                                    alertMessage = "黒のコマを置ける場所ではありません。"
-                                    showAlert = true
-                                } else if currentTurn == .black && gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
+                                } else if gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
                                     gameBoard.cells[row][column] = currentTurn
-                                    currentTurn = .white // 次は白の番
+                                    currentTurn = currentTurn == .black ? .white : .black
+                                } else if !gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
+                                    let turnMessage = currentTurn == .black ? "黒" : "白"
+                                    alertMessage = "\(turnMessage)のコマを置ける場所ではありません。"
+                                    showAlert = true
+                                    
                                 }
                             }
                     }
@@ -66,12 +68,13 @@ struct GameBoard {
             return false
         }
         
+        let opponent: CellState = player == .black ? .white : .black
         let directions = [(0,1),(1,0),(0,-1),(-1,0)]
         for (dx,dy) in directions{
             let newRow = row + dx
             let newColumn = column + dy
             
-            if newRow >= 0 && newRow < 8 && newColumn >= 0 && newColumn < 8 && cells[newRow][newColumn] == .white {
+            if newRow >= 0 && newRow < 8 && newColumn >= 0 && newColumn < 8 && cells[newRow][newColumn] == opponent {
                 return true
             }
         }
