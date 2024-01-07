@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var currentTurn = CellState.black
     @State private var showAlert = false // showAlertをContentViewの中で定義
     @State private var alertMessage = ""
+    @State var putPositions: [(Int, Int)] = []
     
     var body: some View {
         VStack(spacing: 1.0) {
@@ -41,11 +42,15 @@ struct ContentView: View {
                                         //ターン交代
                                         currentTurn = currentTurn == .black ? .white : .black
                                         // 次のプレイヤーが置ける場所があるかチェック
-                                        if !gameBoard.canPlayerPlacePiece(player: currentTurn) {
+                                        let (canPlace, _) = gameBoard.canPlayerPlacePiece(player: currentTurn)
+                                        let (_,nextPlace) = gameBoard.canPlayerPlacePiece(player: currentTurn)
+                                        if !canPlace {
                                             currentTurn = currentTurn == .black ? .white : .black // ターンをパス
                                             alertMessage = "\(currentTurn == .black ? "黒" : "白")のプレイヤーは置ける場所がありません。ターンをパスします。"
                                             showAlert = true
                                         }
+                                        print(nextPlace)
+                                        
                                     }
                                 } else if !gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
                                     let turnMessage = currentTurn == .black ? "黒" : "白"
@@ -75,6 +80,7 @@ struct GameBoard {
         cells[4][4] = .white
         cells[3][4] = .black
         cells[4][3] = .black
+        
         
     }
     
@@ -199,7 +205,7 @@ struct GameBoard {
     
     //置ける場所がない場合パスする
     //全部探索して当てはまるかを調べる、Canplace関数を全ての空きコマに対して適応
-    func canPlayerPlacePiece(player: CellState) -> Bool {
+    func canPlayerPlacePiece(player: CellState) -> (Bool,[(Int,Int)]) {
         var putPositions: [(Int, Int)] = []
         for row in 0..<8 {
             for column in 0..<8 {
@@ -208,8 +214,8 @@ struct GameBoard {
                 }
             }
         }
-        print(putPositions)
-        return !putPositions.isEmpty
+//        print(putPositions)
+        return (!putPositions.isEmpty,putPositions)
     }
     //全部のコマ探索して、黒白数える。
     func countPieces() -> (black: Int, white: Int) {
