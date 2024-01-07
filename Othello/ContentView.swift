@@ -25,16 +25,27 @@ struct ContentView: View {
                         CellView(cellState: gameBoard.cells[row][column])
                             .frame(width: 40.0, height: 40)
                             .onTapGesture {
-                                // showAlertをonTapGesture内で使用
-                                if gameBoard.cells[row][column] != .green {
-                                    alertMessage = "ここには置けません。"
-                                    showAlert = true
-                                } else if gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
+                                if gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
                                     gameBoard.cells[row][column] = currentTurn
+                                    //ひっくり返す
                                     gameBoard.flipVerticalPieces(fromRow: row, fromColumn: column, for: currentTurn)
                                     gameBoard.flipHorizontalPieces(fromRow: row, fromColumn: column, for: currentTurn)
                                     gameBoard.flipDiagonalPieces(fromRow: row, fromColumn: column, for: currentTurn)
-                                    currentTurn = currentTurn == .black ? .white : .black
+                                    //ゲーム終了かチェック
+                                    if gameBoard.isFull() {
+                                        let result = gameBoard.countPieces()
+                                        alertMessage = "ゲーム終了！ 黒: \(result.black), 白: \(result.white)"
+                                        showAlert = true
+                                    } else {
+                                        //ターン交代
+                                        currentTurn = currentTurn == .black ? .white : .black
+                                        // 次のプレイヤーが置ける場所があるかチェック
+                                        if !gameBoard.canPlayerPlacePiece(player: currentTurn) {
+                                            currentTurn = currentTurn == .black ? .white : .black // ターンをパス
+                                            alertMessage = "\(currentTurn == .black ? "黒" : "白")のプレイヤーは置ける場所がありません。ターンをパスします。"
+                                            showAlert = true
+                                        }
+                                    }
                                 } else if !gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
                                     let turnMessage = currentTurn == .black ? "黒" : "白"
                                     alertMessage = "\(turnMessage)のコマを置ける場所ではありません。"
@@ -63,6 +74,7 @@ struct GameBoard {
         cells[4][4] = .white
         cells[3][4] = .black
         cells[4][3] = .black
+        
     }
     
     //ここでコマのおける位置指定できる
@@ -156,27 +168,62 @@ struct GameBoard {
         }
     }
     mutating func flipDiagonalPieces(fromRow row: Int, fromColumn column: Int, for player: CellState) {
-            let opponent: CellState = player == .black ? .white : .black
-            let directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)] // 斜め方向
-
-            for (dx, dy) in directions {
-                var flipPositions: [(Int, Int)] = []
-                var r = row + dx
-                var c = column + dy
-
-                while r >= 0 && r < 8 && c >= 0 && c < 8 && cells[r][c] == opponent {
-                    flipPositions.append((r, c))
-                    r += dx
-                    c += dy
-                }
-
-                if r >= 0 && r < 8 && c >= 0 && c < 8 && cells[r][c] == player {
-                    for pos in flipPositions {
-                        cells[pos.0][pos.1] = player
-                    }
+        let opponent: CellState = player == .black ? .white : .black
+        let directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)] // 斜め方向
+        
+        for (dx, dy) in directions {
+            var flipPositions: [(Int, Int)] = []
+            var r = row + dx
+            var c = column + dy
+            
+            while r >= 0 && r < 8 && c >= 0 && c < 8 && cells[r][c] == opponent {
+                flipPositions.append((r, c))
+                r += dx
+                c += dy
+            }
+            
+            if r >= 0 && r < 8 && c >= 0 && c < 8 && cells[r][c] == player {
+                for pos in flipPositions {
+                    cells[pos.0][pos.1] = player
                 }
             }
         }
+    }
+    
+    //置ける場所がない場合パスする
+    //全部探索して当てはまるかを調べる
+    func canPlayerPlacePiece(player: CellState) -> Bool {
+        for row in 0..<8 {
+            for column in 0..<8 {
+                if canPlacePiece(at: row, column: column, for: player) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+    //全部のコマ探索して、黒白数える。
+    func countPieces() -> (black: Int, white: Int) {
+        var blackCount = 0
+        var whiteCount = 0
+        
+        for row in cells {
+            for cell in row {
+                if cell == .black {
+                    blackCount += 1
+                } else if cell == .white {
+                    whiteCount += 1
+                }
+            }
+        }
+        
+        return (blackCount, whiteCount)
+    }
+    
+    //合計が64(全部埋まってる)なら終了
+    func isFull() -> Bool {
+        return countPieces().black + countPieces().white == 64
+    }
 }
 
 
