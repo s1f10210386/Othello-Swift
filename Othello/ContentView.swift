@@ -32,6 +32,8 @@ struct ContentView: View {
                                 } else if gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
                                     gameBoard.cells[row][column] = currentTurn
                                     gameBoard.flipVerticalPieces(fromRow: row, fromColumn: column, for: currentTurn)
+                                    gameBoard.flipHorizontalPieces(fromRow: row, fromColumn: column, for: currentTurn)
+                                    gameBoard.flipDiagonalPieces(fromRow: row, fromColumn: column, for: currentTurn)
                                     currentTurn = currentTurn == .black ? .white : .black
                                 } else if !gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
                                     let turnMessage = currentTurn == .black ? "黒" : "白"
@@ -67,16 +69,30 @@ struct GameBoard {
     func canPlacePiece(at row: Int, column: Int, for player: CellState) -> Bool {
         
         let opponent: CellState = player == .black ? .white : .black
-        let directions = [(0,1),(1,0),(0,-1),(-1,0)]
-        for (dx,dy) in directions{
-            let newRow = row + dx
-            let newColumn = column + dy
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+        
+        for (dx, dy) in directions {
+            var r = row + dx
+            var c = column + dy
             
-            //コマが範囲外に行くの防ぐ(条件付与しないと端っこ置いた時エラー出る)
-            if newRow >= 0 && newRow < 8 && newColumn >= 0 && newColumn < 8 && cells[newRow][newColumn] == opponent {
-                return true
+            // 最初に相手のコマがあることを確認
+            if r >= 0 && r < 8 && c >= 0 && c < 8 && cells[r][c] == opponent {
+                // さらにその方向に進んで、自分のコマがあるか探索
+                r += dx
+                c += dy
+                while r >= 0 && r < 8 && c >= 0 && c < 8 {
+                    if cells[r][c] == .green {
+                        break
+                    }
+                    if cells[r][c] == player {
+                        return true
+                    }
+                    r += dx
+                    c += dy
+                }
             }
         }
+        
         return false
     }
     
@@ -109,6 +125,58 @@ struct GameBoard {
             }
         }
     }
+    
+    mutating func flipHorizontalPieces(fromRow row: Int, fromColumn column: Int, for player: CellState) {
+        let opponent: CellState = player == .black ? .white : .black
+        
+        // 左方向の探索とひっくり返し
+        var flipPositions: [(Int, Int)] = []
+        var c = column - 1
+        while c >= 0 && cells[row][c] == opponent {
+            flipPositions.append((row, c))
+            c -= 1
+        }
+        if c >= 0 && cells[row][c] == player {
+            for pos in flipPositions {
+                cells[pos.0][pos.1] = player
+            }
+        }
+        
+        // 右方向の探索とひっくり返し
+        flipPositions = []
+        c = column + 1
+        while c < 8 && cells[row][c] == opponent {
+            flipPositions.append((row, c))
+            c += 1
+        }
+        if c < 8 && cells[row][c] == player {
+            for pos in flipPositions {
+                cells[pos.0][pos.1] = player
+            }
+        }
+    }
+    mutating func flipDiagonalPieces(fromRow row: Int, fromColumn column: Int, for player: CellState) {
+            let opponent: CellState = player == .black ? .white : .black
+            let directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)] // 斜め方向
+
+            for (dx, dy) in directions {
+                var flipPositions: [(Int, Int)] = []
+                var r = row + dx
+                var c = column + dy
+
+                while r >= 0 && r < 8 && c >= 0 && c < 8 && cells[r][c] == opponent {
+                    flipPositions.append((r, c))
+                    r += dx
+                    c += dy
+                }
+
+                if r >= 0 && r < 8 && c >= 0 && c < 8 && cells[r][c] == player {
+                    for pos in flipPositions {
+                        cells[pos.0][pos.1] = player
+                    }
+                }
+            }
+        }
 }
 
 
