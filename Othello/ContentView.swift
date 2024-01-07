@@ -15,12 +15,12 @@ struct ContentView: View {
     @State private var alertMessage = ""
     
     var body: some View {
-        VStack {
+        VStack(spacing: 1.0) {
             Text(currentTurn == .black ? "黒のターン" : "白のターン")
                 .font(.headline)
                 .padding()
             ForEach(0..<8, id: \.self) { row in
-                HStack {
+                HStack(spacing: 1.0) {
                     ForEach(0..<8, id: \.self) { column in
                         CellView(cellState: gameBoard.cells[row][column])
                             .frame(width: 40.0, height: 40)
@@ -61,7 +61,7 @@ struct ContentView: View {
         .padding()
         .background(Color.green)
         .alert(isPresented: $showAlert) {
-            Alert(title: Text("警告"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+            Alert(title: Text("通知"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
         }
     }
 }
@@ -84,9 +84,10 @@ struct GameBoard {
         let opponent: CellState = player == .black ? .white : .black
         let directions = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
         
+        //これがないと既にコマがある場所にも置けちゃう
         if cells[row][column] != .green {
-                return false
-            }
+            return false
+        }
         
         for (dx, dy) in directions {
             var r = row + dx
@@ -94,7 +95,7 @@ struct GameBoard {
             
             // 最初に相手のコマがあることを確認
             if r >= 0 && r < 8 && c >= 0 && c < 8 && cells[r][c] == opponent {
-                // さらにその方向に進んで、自分のコマがあるか探索
+                // さらにその方向に進んでって、自分のコマがあるか探索する
                 r += dx
                 c += dy
                 while r >= 0 && r < 8 && c >= 0 && c < 8 {
@@ -102,6 +103,7 @@ struct GameBoard {
                         break
                     }
                     if cells[r][c] == player {
+                        
                         return true
                     }
                     r += dx
@@ -196,16 +198,18 @@ struct GameBoard {
     }
     
     //置ける場所がない場合パスする
-    //全部探索して当てはまるかを調べる
+    //全部探索して当てはまるかを調べる、Canplace関数を全ての空きコマに対して適応
     func canPlayerPlacePiece(player: CellState) -> Bool {
+        var putPositions: [(Int, Int)] = []
         for row in 0..<8 {
             for column in 0..<8 {
                 if canPlacePiece(at: row, column: column, for: player) {
-                    return true
+                    putPositions.append((row,column))
                 }
             }
         }
-        return false
+        print(putPositions)
+        return !putPositions.isEmpty
     }
     //全部のコマ探索して、黒白数える。
     func countPieces() -> (black: Int, white: Int) {
