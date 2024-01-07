@@ -36,6 +36,7 @@ struct ContentView: View {
                                         let result = gameBoard.countPieces()
                                         alertMessage = "ゲーム終了！ 黒: \(result.black), 白: \(result.white)"
                                         showAlert = true
+                                        gameBoard = .init()
                                     } else {
                                         //ターン交代
                                         currentTurn = currentTurn == .black ? .white : .black
@@ -82,6 +83,10 @@ struct GameBoard {
         
         let opponent: CellState = player == .black ? .white : .black
         let directions = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+        
+        if cells[row][column] != .green {
+                return false
+            }
         
         for (dx, dy) in directions {
             var r = row + dx
