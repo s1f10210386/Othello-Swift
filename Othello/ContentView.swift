@@ -31,6 +31,7 @@ struct ContentView: View {
                                     showAlert = true
                                 } else if gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
                                     gameBoard.cells[row][column] = currentTurn
+                                    gameBoard.flipVerticalPieces(fromRow: row, fromColumn: column, for: currentTurn)
                                     currentTurn = currentTurn == .black ? .white : .black
                                 } else if !gameBoard.canPlacePiece(at: row, column: column, for: currentTurn) {
                                     let turnMessage = currentTurn == .black ? "黒" : "白"
@@ -62,11 +63,8 @@ struct GameBoard {
         cells[4][3] = .black
     }
     
+    //ここでコマのおける位置指定できる
     func canPlacePiece(at row: Int, column: Int, for player: CellState) -> Bool {
-        // すでにコマが置かれている場所には置けない
-        if cells[row][column] != .green {
-            return false
-        }
         
         let opponent: CellState = player == .black ? .white : .black
         let directions = [(0,1),(1,0),(0,-1),(-1,0)]
@@ -74,13 +72,45 @@ struct GameBoard {
             let newRow = row + dx
             let newColumn = column + dy
             
+            //コマが範囲外に行くの防ぐ(条件付与しないと端っこ置いた時エラー出る)
             if newRow >= 0 && newRow < 8 && newColumn >= 0 && newColumn < 8 && cells[newRow][newColumn] == opponent {
                 return true
             }
         }
         return false
     }
+    
+    mutating func flipVerticalPieces(fromRow row: Int, fromColumn column: Int, for player: CellState) {
+        let opponent: CellState = player == .black ? .white : .black
+        
+        // 上方向の探索とひっくり返し
+        var flipPositions: [(Int, Int)] = []
+        var r = row - 1
+        while r >= 0 && cells[r][column] == opponent {
+            flipPositions.append((r, column))
+            r -= 1
+        }
+        if r >= 0 && cells[r][column] == player {
+            for pos in flipPositions {
+                cells[pos.0][pos.1] = player
+            }
+        }
+        
+        // 下方向の探索とひっくり返し
+        flipPositions = []
+        r = row + 1
+        while r < 8 && cells[r][column] == opponent {
+            flipPositions.append((r, column))
+            r += 1
+        }
+        if r < 8 && cells[r][column] == player {
+            for pos in flipPositions {
+                cells[pos.0][pos.1] = player
+            }
+        }
+    }
 }
+
 
 struct CellView: View {
     var cellState: CellState
